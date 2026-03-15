@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AGV/AMR 導入提案書 生成ツール</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:   #1A3060;
+    --blue:   #1565C0;
+    --red:    #C62828;
+    --green:  #1B5E20;
+    --orange: #E65100;
+    --gray:   #546E7A;
+    --amber:  #F57F17;
+    --bg:     #F4F6F9;
+    --card:   #FFFFFF;
+    --border: #CFD8DC;
+    --text:   #212121;
+    --muted:  #607D8B;
+    --yellow: #FFF9C4;
+    --calc:   #E3F2FD;
+    --roi:    #E8F5E9;
+    --roi-txt:#1B5E20;
+    --radius: 10px;
+  }
+
+  body {
+    font-family: "Meiryo", "Hiragino Kaku Gothic ProN", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── ヘッダー ── */
+  header {
+    background: var(--navy);
+    color: #fff;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header h1 { font-size: 17px; font-weight: 500; }
+  header span { font-size: 12px; background: rgba(255,255,255,.15);
+    padding: 3px 10px; border-radius: 20px; }
+
+  /* ── レイアウト ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+  @media (max-width: 780px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .panel-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 14px;
+  }
+
+  /* ── セクション ── */
+  .sec-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    margin: 14px 0 6px;
+  }
+  .sec-label:first-child { margin-top: 0; }
+
+  /* ── フォーム要素 ── */
+  .field { margin-bottom: 8px; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 3px;
+  }
+  .field label .req { color: var(--red); margin-left: 2px; }
+  .field input, .field select {
+    width: 100%;
+    font-family: inherit;
+    font-size: 13px;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--text);
+    transition: border-color .15s;
+  }
+  .field input:focus, .field select:focus {
+    outline: none;
+    border-color: var(--blue);
+    box-shadow: 0 0 0 2px rgba(21,101,192,.12);
+  }
+  .field input[type="number"] { text-align: right; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .dd-select {
+    background: #E8EAF6 !important;
+    border-color: #5C6BC0 !important;
+    font-weight: 500;
+    color: #283593 !important;
+  }
+
+  /* ── サマリー右パネル ── */
+  .sum-group { margin-bottom: 14px; }
+  .sum-group-title {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sum-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 5px 0;
+    border-bottom: 1px solid #ECEFF1;
+    font-size: 13px;
+  }
+  .sum-row:last-child { border-bottom: none; }
+  .sum-lbl { color: var(--muted); font-size: 12px; }
+  .sum-val { font-weight: 500; font-size: 13px; }
+  .sum-val.empty { color: #B0BEC5; font-weight: 400; }
+  .sum-val.calc  { color: var(--blue); }
+
+  /* ── 投資額 ── */
+  .inv-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 4px 0;
+    color: var(--muted);
+  }
+  .inv-row span:last-child { color: var(--blue); font-weight: 500; }
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-weight: 500;
+    padding: 8px 0 4px;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+  }
+  .total-row span:last-child { font-size: 16px; color: var(--blue); }
+
+  /* ── ROIカード ── */
+  .method-badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 8px;
+  }
+  .badge-none    { background: #ECEFF1; color: var(--muted); }
+  .badge-jinzai  { background: #FFEBEE; color: var(--red); }
+  .badge-jikan   { background: #E3F2FD; color: var(--blue); }
+
+  .roi-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: #FAFAFA;
+    transition: background .2s, border-color .2s;
+  }
+  .roi-card.active {
+    background: var(--roi);
+    border-color: #A5D6A7;
+  }
+  .roi-card-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .roi-card-value { font-size: 22px; font-weight: 500; color: #B0BEC5; }
+  .roi-card.active .roi-card-value { color: var(--roi-txt); }
+  .roi-card-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .hourly-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    background: var(--calc);
+    border-radius: 6px;
+    padding: 7px 10px;
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+  .hourly-row span:last-child { font-weight: 500; color: var(--blue); font-size: 14px; }
+  .roi-none-msg { font-size: 12px; color: #B0BEC5; padding: 8px 0; text-align: center; }
+
+  /* ── コピーボタン ── */
+  .copy-btn {
+    width: 100%;
+    margin-top: 14px;
+    padding: 10px;
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background .15s, opacity .15s;
+  }
+  .copy-btn:hover { background: #243B6E; }
+  .copy-btn:active { opacity: .8; }
+  .copy-btn.ok { background: var(--green); }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #263238;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s, transform .2s;
+    z-index: 999;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>AGV/AMR 導入提案書 生成ツール</h1>
+  <span>入力 → Gemini に貼り付けて送信</span>
+</header>
+
+<div class="layout">
+
+  <!-- ═══ 左：入力パネル ═══ -->
+  <div class="panel">
+    <div class="panel-title">顧客情報入力</div>
+
+    <div class="sec-label">会社情報</div>
+    <div class="field">
+      <label>会社名<span class="req">*</span></label>
+      <input id="company" placeholder="○○株式会社" oninput="render()">
+    </div>
+
+    <div class="sec-label">自動化対象</div>
+    <div class="field">
+      <label>工程<span class="req">*</span></label>
+      <input id="process" placeholder="原材料倉庫〜製造ライン搬送" oninput="render()">
+    </div>
+    <div class="field">
+      <label>現在の作業内容</label>
+      <input id="current" placeholder="フォークリフトによる手動搬送" oninput="render()">
+    </div>
+
+    <div class="sec-label">搬送条件</div>
+    <div class="row2">
+      <div class="field">
+        <label>搬送物</label>
+        <input id="item" placeholder="パレット" oninput="render()">
+      </div>
+      <div class="field">
+        <label>重量 (kg)</label>
+        <input id="weight" type="number" placeholder="200" oninput="render()">
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>1日稼働時間 (h)<span class="req">*</span></label>
+        <input id="hrs" type="number" placeholder="8" oninput="render()">
+      </div>
+      <div class="field">
+        <label>年間稼働日数 (日)<span class="req">*</span></label>
+        <input id="days" type="number" placeholder="250" oninput="render()">
+      </div>
+    </div>
+
+    <div class="sec-label">現状人員</div>
+    <div class="row2">
+      <div class="field">
+        <label>作業人数 (名)<span class="req">*</span></label>
+        <input id="workers" type="number" placeholder="3" oninput="render()">
+      </div>
+      <div class="field">
+        <label>年間人件費 (万円/人)<span class="req">*</span></label>
+        <input id="salary" type="number" placeholder="500" oninput="render()">
+      </div>
+    </div>
+
+    <div class="sec-label">導入ロボット</div>
+    <div class="field">
+      <label>ロボット種類</label>
+      <select id="robot_type" onchange="render()">
+        <option value="">── 選択 ──</option>
+        <option value="AMR">AMR（自律移動型）</option>
+        <option value="AGV">AGV（誘導型）</option>
+      </select>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>導入台数 (台)<span class="req">*</span></label>
+        <input id="units" type="number" placeholder="3" oninput="render()">
+      </div>
+      <div class="field">
+        <label>ロボット単価 (万円/台)<span class="req">*</span></label>
+        <input id="unit_price" type="number" placeholder="500" oninput="render()">
+      </div>
+    </div>
+    <div class="field">
+      <label>ロボット導入費・本体/外部連携/設置費等 (万円)<span class="req">*</span></label>
+      <input id="install" type="number" placeholder="800" oninput="render()">
+    </div>
+
+    <div class="sec-label">ROI計算方式</div>
+    <div class="field">
+      <label>計算方式を選択<span class="req">*</span></label>
+      <select id="roi_method" onchange="toggleMethod();render()" class="dd-select">
+        <option value="">── 選択してください ──</option>
+        <option value="jinzai">人員削減型</option>
+        <option value="jikan">作業時間削減型</option>
+      </select>
+    </div>
+
+    <div id="jinzai_fields" style="display:none">
+      <div class="field">
+        <label>削減人数 (名)<span class="req">*</span></label>
+        <input id="reduce_ppl" type="number" placeholder="2" oninput="render()">
+      </div>
+    </div>
+    <div id="jikan_fields" style="display:none">
+      <div class="row2">
+        <div class="field">
+          <label>1日あたり削減時間 (h)<span class="req">*</span></label>
+          <input id="reduce_hrs" type="number" step="0.5" placeholder="2" oninput="render()">
+        </div>
+        <div class="field">
+          <label>対象人数 (名)<span class="req">*</span></label>
+          <input id="target_ppl" type="number" placeholder="3" oninput="render()">
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-label">自動化目的（複数選択可）</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="chk1" onchange="render()"> 省人化
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="chk2" onchange="render()"> 安全性向上
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="chk3" onchange="render()"> 作業負荷軽減
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="chk4" onchange="render()"> 搬送効率改善
+      </label>
+    </div>
+
+    <button class="copy-btn" onclick="copyPrompt()" id="copy_btn">
+      このプロンプトをコピーして Gemini に貼り付ける
+    </button>
+  </div>
+
+  <!-- ═══ 右：サマリーパネル ═══ -->
+  <div class="panel" id="summary_panel">
+    <div class="panel-title">入力サマリー / ROI 結果</div>
+
+    <div class="sum-group">
+      <div class="sum-group-title">案件情報</div>
+      <div class="sum-row"><span class="sum-lbl">会社名</span><span class="sum-val empty" id="s_company">──</span></div>
+      <div class="sum-row"><span class="sum-lbl">工程</span><span class="sum-val empty" id="s_process">──</span></div>
+      <div class="sum-row"><span class="sum-lbl">ロボット種別</span><span class="sum-val empty" id="s_robot">──</span></div>
+    </div>
+
+    <div class="sum-group">
+      <div class="sum-group-title">稼働条件</div>
+      <div class="sum-row"><span class="sum-lbl">1日稼働</span><span class="sum-val empty" id="s_hrs">──</span></div>
+      <div class="sum-row"><span class="sum-lbl">年間稼働日数</span><span class="sum-val empty" id="s_days">──</span></div>
+      <div class="sum-row"><span class="sum-lbl">作業人数</span><span class="sum-val empty" id="s_workers">──</span></div>
+      <div class="sum-row"><span class="sum-lbl">年間人件費/人</span><span class="sum-val empty" id="s_salary">──</span></div>
+    </div>
+
+    <div class="sum-group">
+      <div class="sum-group-title">投資額（自動計算）</div>
+      <div class="inv-row"><span>台数 × 単価</span><span id="s_units_cost">──</span></div>
+      <div class="inv-row"><span>ロボット導入費</span><span id="s_install">──</span></div>
+      <div class="total-row"><span>合計導入費用</span><span id="s_total">──</span></div>
+    </div>
+
+    <div class="sum-group">
+      <div class="sum-group-title">ROI 試算</div>
+      <div id="s_method_badge"><span class="method-badge badge-none">方式未選択</span></div>
+
+      <div id="roi_jinzai_block" style="display:none">
+        <div class="roi-card" id="jinzai_cost_card">
+          <div class="roi-card-label">年間削減コスト（人員削減型）</div>
+          <div class="roi-card-value" id="s_jinzai_cost">──</div>
+          <div class="roi-card-sub">削減人数 × 年間人件費</div>
+        </div>
+        <div class="roi-card" id="jinzai_roi_card">
+          <div class="roi-card-label">投資回収年数（人員削減型）</div>
+          <div class="roi-card-value" id="s_jinzai_roi">──</div>
+        </div>
+      </div>
+
+      <div id="roi_jikan_block" style="display:none">
+        <div class="hourly-row">
+          <span>1人時単価（自動計算）</span>
+          <span id="s_hourly">──</span>
+        </div>
+        <div class="roi-card" id="jikan_cost_card">
+          <div class="roi-card-label">年間削減コスト（作業時間削減型）</div>
+          <div class="roi-card-value" id="s_jikan_cost">──</div>
+          <div class="roi-card-sub">1人時単価 × 削減h × 稼働日 × 人数</div>
+        </div>
+        <div class="roi-card" id="jikan_roi_card">
+          <div class="roi-card-label">投資回収年数（作業時間削減型）</div>
+          <div class="roi-card-value" id="s_jikan_roi">──</div>
+        </div>
+      </div>
+
+      <div class="roi-none-msg" id="roi_none_msg">ROI計算方式を選択すると結果が表示されます</div>
+    </div>
+  </div>
+</div>
+
+<div id="toast">コピーしました！Gemini に貼り付けて送信してください</div>
+
+<script>
+function g(id){ return document.getElementById(id) }
+function val(id){ return (g(id).value||'').trim() }
+function num(id){ return parseFloat(g(id).value)||0 }
+
+function toggleMethod(){
+  const m = val('roi_method')
+  g('jinzai_fields').style.display = m==='jinzai' ? 'block' : 'none'
+  g('jikan_fields').style.display  = m==='jikan'  ? 'block' : 'none'
+}
+
+function sv(id, text, isEmpty){
+  const el = g(id)
+  el.textContent = text
+  el.className = 'sum-val' + (isEmpty ? ' empty' : '')
+}
+
+function fmtMan(n){ return n > 0 ? n.toLocaleString('ja-JP') + '万円' : '──' }
+function fmtEn(n) { return n > 0 ? n.toLocaleString('ja-JP') + '円' : '──' }
+function fmtYr(n) { return n > 0 ? n.toFixed(1) + '年' : '──' }
+
+function render(){
+  const co    = val('company'), pr = val('process')
+  const robot = val('robot_type')
+  const hrs   = num('hrs'),    days = num('days')
+  const work  = num('workers'),sal  = num('salary')
+  const units = num('units'),  up   = num('unit_price'), inst = num('install')
+  const total = (units>0 && up>0) ? units*up + inst : 0
+  const method = val('roi_method')
+
+  sv('s_company', co||'──', !co)
+  sv('s_process', pr||'──', !pr)
+  sv('s_robot',   robot||'──', !robot)
+  sv('s_hrs',   hrs  ? hrs+'h'    : '──', !hrs)
+  sv('s_days',  days ? days+'日'  : '──', !days)
+  sv('s_workers', work ? work+'名' : '──', !work)
+  sv('s_salary',  sal  ? sal+'万円/人' : '──', !sal)
+
+  g('s_units_cost').textContent = (units&&up) ? fmtMan(units*up) : '──'
+  g('s_install').textContent    = inst ? fmtMan(inst) : '──'
+  const te = g('s_total')
+  te.textContent  = total ? fmtMan(total) : '──'
+  te.style.color  = total ? 'var(--blue)' : 'var(--muted)'
+
+  g('roi_jinzai_block').style.display = method==='jinzai' ? 'block' : 'none'
+  g('roi_jikan_block').style.display  = method==='jikan'  ? 'block' : 'none'
+  g('roi_none_msg').style.display     = method ? 'none' : 'block'
+
+  const badge = g('s_method_badge')
+  if(method==='jinzai')
+    badge.innerHTML = '<span class="method-badge badge-jinzai">人員削減型を選択中</span>'
+  else if(method==='jikan')
+    badge.innerHTML = '<span class="method-badge badge-jikan">作業時間削減型を選択中</span>'
+  else
+    badge.innerHTML = '<span class="method-badge badge-none">方式未選択</span>'
+
+  if(method==='jinzai'){
+    const rp  = num('reduce_ppl')
+    const ann = rp>0 && sal>0 ? rp*sal*10000 : 0
+    const roi = ann>0 && total>0 ? total*10000/ann : 0
+    const ce = g('s_jinzai_cost'), re = g('s_jinzai_roi')
+    if(ann>0){ ce.textContent=fmtEn(ann); g('jinzai_cost_card').className='roi-card active' }
+    else     { ce.textContent='削減人数・人件費を入力してください'; g('jinzai_cost_card').className='roi-card' }
+    if(roi>0){ re.textContent=fmtYr(roi); g('jinzai_roi_card').className='roi-card active' }
+    else     { re.textContent='──'; g('jinzai_roi_card').className='roi-card' }
+  }
+
+  if(method==='jikan'){
+    const hourly = (sal>0&&days>0&&hrs>0) ? Math.round(sal*10000/(days*hrs)) : 0
+    g('s_hourly').textContent = hourly ? hourly.toLocaleString('ja-JP')+'円/時間' : '──'
+    const rh  = num('reduce_hrs'), tp = num('target_ppl')
+    const ann = hourly>0&&rh>0&&days>0&&tp>0 ? Math.round(hourly*rh*days*tp) : 0
+    const roi = ann>0&&total>0 ? total*10000/ann : 0
+    const ce = g('s_jikan_cost'), re = g('s_jikan_roi')
+    if(ann>0){ ce.textContent=fmtEn(ann); g('jikan_cost_card').className='roi-card active' }
+    else     { ce.textContent='削減時間・対象人数を入力してください'; g('jikan_cost_card').className='roi-card' }
+    if(roi>0){ re.textContent=fmtYr(roi); g('jikan_roi_card').className='roi-card active' }
+    else     { re.textContent='──'; g('jikan_roi_card').className='roi-card' }
+  }
+}
+
+function buildPrompt(){
+  const co    = val('company'), pr = val('process')
+  const cur   = val('current'), it = val('item'),    wt = num('weight')
+  const hrs   = num('hrs'),    days = num('days')
+  const work  = num('workers'), sal = num('salary')
+  const robot = val('robot_type')
+  const units = num('units'),  up  = num('unit_price'), inst = num('install')
+  const total = (units&&up) ? units*up+inst : 0
+  const method= val('roi_method')
+  const purposes = ['省人化','安全性向上','作業負荷軽減','搬送効率改善']
+    .filter((_,i)=>g('chk'+(i+1)).checked).join('、')
+
+  const hourly = (sal&&days&&hrs) ? Math.round(sal*10000/(days*hrs)) : 0
+
+  let roiSection = ''
+  if(method==='jinzai'){
+    const rp  = num('reduce_ppl')
+    const ann = rp&&sal ? rp*sal*10000 : 0
+    const roi = ann&&total ? (total*10000/ann).toFixed(1) : '未入力'
+    roiSection = `
+ROI計算方式：人員削減型
+削減人数：${rp||'未入力'}名
+年間削減コスト：${ann?ann.toLocaleString('ja-JP')+'円':'未入力'}
+投資回収年数：${roi}年
+計算式：削減人数 × 年間人件費`
+  } else if(method==='jikan'){
+    const rh  = num('reduce_hrs'), tp = num('target_ppl')
+    const ann = hourly&&rh&&days&&tp ? Math.round(hourly*rh*days*tp) : 0
+    const roi = ann&&total ? (total*10000/ann).toFixed(1) : '未入力'
+    roiSection = `
+ROI計算方式：作業時間削減型
+1人時単価（自動計算）：${hourly?hourly.toLocaleString('ja-JP')+'円/時間':'未入力'}
+1日あたり削減時間：${rh||'未入力'}h
+対象人数：${tp||'未入力'}名
+年間削減コスト：${ann?ann.toLocaleString('ja-JP')+'円':'未入力'}
+投資回収年数：${roi}年
+計算式：1人時単価 × 削減時間/日 × 年間稼働日数 × 対象人数`
+  }
+
+  return `あなたは物流自動化コンサルタントです。
+AGV / AMR導入提案書（稟議提出レベル）を作成してください。
+出力はPowerPointスライド形式で作成してください。
+1スライドにつきタイトル＋箇条書き5行以内。
+営業提案ではなく「社内稟議で承認される資料」を作成する前提で、定量データを重視してください。
+
+【顧客情報】
+会社名：${co||'未入力'}
+
+【自動化対象】
+工程：${pr||'未入力'}
+現在の作業内容：${cur||'未入力'}
+
+【搬送条件】
+搬送物：${it||'未入力'}　重量：${wt?wt+'kg':'未入力'}
+1日稼働時間：${hrs?hrs+'h':'未入力'}　年間稼働日数：${days?days+'日':'未入力'}
+
+【現状人員】
+作業人数：${work?work+'名':'未入力'}
+1人あたり年間人件費：${sal?sal+'万円':'未入力'}
+
+【導入ロボット】
+ロボット種類：${robot||'未入力'}
+導入台数：${units?units+'台':'未入力'}　ロボット単価：${up?up+'万円/台':'未入力'}
+ロボット導入費（本体・外部機器連携・設置費等）：${inst?inst+'万円':'未入力'}
+合計導入費用：${total?total+'万円':'未入力'}
+
+【自動化目的】
+${purposes||'未選択'}
+
+【ROI試算】${roiSection||'\n方式未選択'}
+
+【出力内容】
+①現状の課題（人手依存・安全リスク・生産拡張の制約）
+②自動化コンセプト（なぜロボット化するのか・導入方針）
+③導入ソリューション概要（台数・システム構成・搬送方式）
+④搬送フロー（図解推奨と記載すること）
+⑤導入効果（定量）：削減人員・作業時間削減・安全性改善
+⑥ROI試算（上記計算方式で算出）
+⑦導入スケジュール（検証→設計→導入→立ち上げ）
+⑧導入後の運用イメージ
+⑨稟議用まとめ（投資理由・期待効果・経営メリット）
+
+出力形式：PowerPointスライド形式 / 1スライド タイトル＋箇条書き5行以内
+目的：「役員・工場長が判断できる提案書」として作成すること。営業資料ではなく稟議書として作成する。`
+}
+
+function copyPrompt(){
+  const txt = buildPrompt()
+  navigator.clipboard.writeText(txt).then(()=>{
+    const btn = g('copy_btn')
+    btn.textContent = 'コピー完了！'
+    btn.classList.add('ok')
+    setTimeout(()=>{ btn.textContent = 'このプロンプトをコピーして Gemini に貼り付ける'; btn.classList.remove('ok') }, 2500)
+    const toast = g('toast')
+    toast.classList.add('show')
+    setTimeout(()=>toast.classList.remove('show'), 3000)
+  }).catch(()=>alert('コピーに失敗しました。ブラウザの設定を確認してください。'))
+}
+
+render()
+</script>
+</body>
+</html>
