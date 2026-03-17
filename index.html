@@ -335,11 +335,62 @@
     <div class="sec-label">導入ロボット</div>
     <div class="field">
       <label>ロボット種類</label>
-      <select id="robot_type" onchange="render()">
+      <select id="robot_type" onchange="toggleRobotType();render()">
         <option value="">── 選択 ──</option>
         <option value="AMR">AMR（自律移動型）</option>
         <option value="AGV">AGV（誘導型）</option>
       </select>
+    </div>
+
+    <!-- AGV選択時のみ表示：メイン導入理由＋追加訴求ポイント -->
+    <div id="agv_pattern_block" style="display:none">
+      <!-- CarriRo情報バナー -->
+      <div style="background:#FFF8E1;border:1px solid #FFB300;border-radius:6px;padding:8px 10px;margin:6px 0;font-size:11px;color:#E65100;line-height:1.6">
+        <strong>CarriRo Basic（パレット積載オプション）</strong>専用のプロンプトが生成されます。<br>
+        ミラボット株式会社製 / ランドマーク誘導 / 専用台車潜り込み方式
+      </div>
+
+      <!-- メインの導入理由（ラジオボタン） -->
+      <div class="field" style="margin-top:8px">
+        <label>メインの導入理由<span class="req">*</span>（1つ選択）</label>
+        <div style="margin-top:4px;padding:8px 10px;background:#F8F9FA;border:1px solid var(--border);border-radius:6px">
+          <label style="display:grid;grid-template-columns:18px 1fr;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:4px 0;border-bottom:1px solid #ECEFF1">
+            <input type="radio" name="agv_main" id="agv_main1" value="労災リスク排除と安全性確保" onchange="render()" style="width:16px;height:16px;margin:0">
+            <span>労災リスク排除と安全性確保</span>
+          </label>
+          <label style="display:grid;grid-template-columns:18px 1fr;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:4px 0;border-bottom:1px solid #ECEFF1">
+            <input type="radio" name="agv_main" id="agv_main2" value="現場へのスムーズな定着と操作性" onchange="render()" style="width:16px;height:16px;margin:0">
+            <span>現場へのスムーズな定着と操作性</span>
+          </label>
+          <label style="display:grid;grid-template-columns:18px 1fr;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:4px 0">
+            <input type="radio" name="agv_main" id="agv_main3" value="既存環境を変えない柔軟性と拡張性" onchange="render()" style="width:16px;height:16px;margin:0">
+            <span>既存環境を変えない柔軟性と拡張性</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- 追加の訴求ポイント（チェックボックス） -->
+      <div class="field" style="margin-top:8px">
+        <label>追加の訴求ポイント（複数選択可・任意）</label>
+        <div style="margin-top:4px;padding:8px 10px;background:#F8F9FA;border:1px solid var(--border);border-radius:6px">
+          <label style="display:grid;grid-template-columns:18px 1fr;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:4px 0;border-bottom:1px solid #ECEFF1">
+            <input type="checkbox" id="agv_sub1" value="採用費や新人教育費の削減" onchange="render()" style="width:16px;height:16px;margin:0">
+            <span>採用費や新人教育費の削減</span>
+          </label>
+          <label style="display:grid;grid-template-columns:18px 1fr;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:4px 0;border-bottom:1px solid #ECEFF1">
+            <input type="checkbox" id="agv_sub2" value="従業員満足度の向上と離職防止" onchange="render()" style="width:16px;height:16px;margin:0">
+            <span>従業員満足度の向上と離職防止</span>
+          </label>
+          <label style="display:grid;grid-template-columns:18px 1fr;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:4px 0;border-bottom:1px solid #ECEFF1">
+            <input type="checkbox" id="agv_sub3" value="将来のレイアウト変更への対応力" onchange="render()" style="width:16px;height:16px;margin:0">
+            <span>将来のレイアウト変更への対応力</span>
+          </label>
+          <label style="display:grid;grid-template-columns:18px 1fr;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:4px 0">
+            <input type="checkbox" id="agv_sub4" value="誰でも使える直感的な操作性" onchange="render()" style="width:16px;height:16px;margin:0">
+            <span>誰でも使える直感的な操作性</span>
+          </label>
+        </div>
+      </div>
     </div>
     <div class="row2">
       <div class="field">
@@ -484,6 +535,12 @@ function toggleMethod(){
   g('jikan_fields').style.display  = m==='jikan'  ? 'block' : 'none'
 }
 
+function toggleRobotType(){
+  const rt = val('robot_type')
+  g('agv_pattern_block').style.display = rt==='AGV' ? 'block' : 'none'
+  render()
+}
+
 function sv(id, text, isEmpty){
   const el = g(id)
   el.textContent = text
@@ -554,19 +611,70 @@ function render(){
 }
 
 function buildPrompt(){
-  const pr = val('process')
-  const cur   = val('current'), it = val('item'),    wt = num('weight')
-  const hrs   = num('hrs'),    days = num('days')
+  const pr    = val('process')
+  const cur   = val('current'), it = val('item'), wt = num('weight')
+  const hrs   = num('hrs'),   days = num('days')
   const work  = num('workers'), sal = num('salary')
   const robot = val('robot_type')
-  const units = num('units'),  up  = num('unit_price'), inst = num('install')
+  const units = num('units'), up = num('unit_price'), inst = num('install')
   const total = (units&&up) ? units*up+inst : 0
-  const method= val('roi_method')
+  const method  = val('roi_method')
   const purposes = ['省人化','安全性向上','作業負荷軽減','搬送効率改善']
     .filter((_,i)=>g('chk'+(i+1)).checked).join('、')
-
   const hourly = (sal&&days&&hrs) ? Math.round(sal*10000/(days*hrs)) : 0
 
+  // ROI計算（共通）
+  let annCost = 0, roiYr = '未入力'
+  if(method==='jinzai'){
+    const rp = num('reduce_ppl')
+    annCost = rp&&sal ? rp*sal*10000 : 0
+    roiYr   = annCost&&total ? (total*10000/annCost).toFixed(1) : '未入力'
+  } else if(method==='jikan'){
+    const rh = num('reduce_hrs'), tp = num('target_ppl')
+    annCost = hourly&&rh&&days&&tp ? Math.round(hourly*rh*days*tp) : 0
+    roiYr   = annCost&&total ? (total*10000/annCost).toFixed(1) : '未入力'
+  }
+  const annCostFmt = annCost ? annCost.toLocaleString('ja-JP')+'円' : '未入力'
+  const totalFmt   = total ? (total*10000).toLocaleString('ja-JP')+'円' : '未入力'
+
+  // ════════════════════════════════════════
+  // AGV（CarriRo）専用プロンプト
+  // ════════════════════════════════════════
+  if(robot==='AGV'){
+    // メインの導入理由（ラジオボタン）
+    const mainReason = document.querySelector('input[name="agv_main"]:checked')
+      ? document.querySelector('input[name="agv_main"]:checked').value
+      : '未選択'
+
+    // 追加の訴求ポイント（チェックボックス）
+    const subPoints = ['agv_sub1','agv_sub2','agv_sub3','agv_sub4']
+      .filter(id => g(id) && g(id).checked)
+      .map(id => g(id).value)
+
+    const subSection = subPoints.length > 0
+      ? '\n■ 追加の訴求ポイント：\n' + subPoints.map(s=>'・'+s).join('\n')
+      : ''
+
+    return `あなたは物流自動化コンサルタントです。ミラボット株式会社の「CarriRo Basic（パレット積載オプション装着）」導入提案書（稟議書）を作成してください。
+出力はPowerPointスライド形式（1スライドにつきタイトル＋箇条書き10行以内）で作成し、定量データを重視してください。
+
+【前提条件】
+・対象：${pr||'未入力'}の${wt?wt+'kg':'未入力'}パレット搬送
+・導入機器：CarriRo Basic（パレット積載オプション） ${units?units+'台':'未入力'}（総投資額${totalFmt}）
+・搬送方式：専用パレット台車の下にCarriRoが潜り込み、持ち上げて自律搬送する。
+・誘導方式：床に貼付するランドマーク（シール）による自律走行。
+・ROI試算：年間削減コスト${annCostFmt}、投資回収年数${roiYr}年
+
+【提案の方向性（最重要）】
+以下の要素を提案ストーリーの軸として、役員・工場長が承認できる稟議書にしてください。各スライドには以下の要素を自然に組み込み、ROIの直接効果に加えて定性的価値を強く訴求してください。
+
+■ メインの投資理由：
+・${mainReason}${subSection}`
+  }
+
+  // ════════════════════════════════════════
+  // AMR 従来プロンプト（変更なし）
+  // ════════════════════════════════════════
   let roiSection = ''
   if(method==='jinzai'){
     const rp  = num('reduce_ppl')
